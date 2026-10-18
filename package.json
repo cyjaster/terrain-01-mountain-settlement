@@ -1,0 +1,17 @@
+{
+  "name": "terrain-01-mountain-settlement",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TERRAIN / 01 — 山地聚落生长实验室。A procedural mountain-settlement growth laboratory built with Three.js.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "keywords": [
+    "three.js",
+    "generative-design",
+    "terrain",
+    "architecture",
+    "settlement"
+  ],
+  "license": "MIT"
+}

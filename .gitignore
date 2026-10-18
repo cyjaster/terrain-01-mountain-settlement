@@ -1,0 +1,14 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# Node (the project itself has zero runtime dependencies)
+node_modules/
+npm-debug.log*
+
+# Local QA / temporary export folders
+.terrain-qa/
+*.tmp

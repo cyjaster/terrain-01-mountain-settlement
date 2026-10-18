@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f2f0e9">
+  <meta name="description" content="TERRAIN / 01 — 山地聚落生长实验室。基于真实坡度计算与间距约束的三维生成式聚落实验。">
+  <title>TERRAIN / 01 — 山地聚落生长实验室</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23141414'/%3E%3Cpath d='M7 24 16 7l9 17h-5l-4-7-4 7z' fill='%23f4f1e8'/%3E%3Crect x='23' y='5' width='5' height='5' fill='%23d63c20'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+
+    <header class="masthead">
+      <div class="mast-brand">
+        <a class="brand-lockup" href="./" aria-label="TERRAIN / 01 山地聚落生长实验室">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-mark-letter">T</span>
+            <span class="brand-mark-dot"></span>
+          </span>
+          <span class="brand-words">
+            <strong>TERRAIN / 01</strong>
+            <small>山地聚落生长实验室</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="mast-center" aria-hidden="true">
+        <span class="mast-line"></span>
+        <p>
+          自然地形 × 人工秩序<br>
+          <b>APPLIED TOPOGRAPHY / GENERATIVE SETTLEMENT</b>
+        </p>
+        <span class="mast-line"></span>
+      </div>
+
+      <div class="mast-status">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="status-label">系统在线 / LIVE</span>
+        <span class="status-rule" aria-hidden="true"></span>
+        <time id="clockReadout" class="mono">--:--:--</time>
+        <span class="version-tag">R.01</span>
+      </div>
+    </header>
+
+    <aside class="left-rail" aria-label="项目信息与场地读数">
+      <div class="rail-inner">
+        <span class="rail-watermark" aria-hidden="true">01</span>
+
+        <section class="rail-intro">
+          <div class="eyebrow-row">
+            <span class="eyebrow">EXPERIMENT / 001</span>
+            <span class="eyebrow">ZRH — T1</span>
+          </div>
+          <h1>山地聚落<br><span>生长实验室</span></h1>
+          <p class="lede">一台关于地形、坡度与间距的虚拟建筑仪器。观察聚落如何从山体约束中缓慢生长，形成只属于此处的秩序。</p>
+        </section>
+
+        <section class="rail-section data-section">
+          <div class="section-label">
+            <span>场地读数</span>
+            <span>SITE DATA</span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric">
+              <span class="metric-label">最高点 / PEAK</span>
+              <div class="metric-value"><strong id="statPeak">—</strong><em>M</em></div>
+            </div>
+            <div class="metric">
+              <span class="metric-label">可建坡面 / BUILDABLE</span>
+              <div class="metric-value"><strong id="statBuildable">—</strong><em>%</em></div>
+            </div>
+            <div class="metric">
+              <span class="metric-label">已落位 / UNITS</span>
+              <div class="metric-value"><strong id="statUnits">—</strong><span id="statUnitsNote" class="metric-note">/ —</span></div>
+            </div>
+            <div class="metric">
+              <span class="metric-label">建筑覆盖 / COVERAGE</span>
+              <div class="metric-value"><strong id="statCoverage">—</strong><em>%</em></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="rail-section profile-section">
+          <div class="section-label">
+            <span>地形剖面</span>
+            <span>A—A′ / SECTION</span>
+          </div>
+          <div class="profile-shell">
+            <div class="profile-axis" aria-hidden="true">
+              <span id="sectionMax">+0000</span>
+              <span id="sectionMid">+0000</span>
+              <span id="sectionMin">+0000</span>
+            </div>
+            <div class="profile-plot">
+              <svg id="profileSvg" viewBox="0 0 260 92" preserveAspectRatio="none" role="img" aria-label="东西向地形剖面图"></svg>
+              <div class="profile-baseline" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="profile-meta">
+            <span>W / 西</span>
+            <span id="sectionDatum">DATUM +1,264 M</span>
+            <span>东 / E</span>
+          </div>
+        </section>
+
+        <section class="rail-section legend-section" id="legendSection">
+          <div class="section-label">
+            <span>坡度分类</span>
+            <span id="analysisState" class="state-text">ANALYSIS / OFF</span>
+          </div>
+          <div class="slope-legend">
+            <div class="slope-gradient" id="slopeGradient" aria-hidden="true">
+              <span class="threshold-marker" id="thresholdMarker"></span>
+            </div>
+            <div class="slope-ticks" aria-hidden="true">
+              <span>0°</span><span>10°</span><span>20°</span><span>30°</span><span>45°+</span>
+            </div>
+            <div class="legend-classes" id="legendClasses"></div>
+            <div class="threshold-caption">
+              <span><i class="small-mark" aria-hidden="true"></i>建设上限 / BUILD LIMIT</span>
+              <b id="buildLimitLabel">24°</b>
+            </div>
+          </div>
+        </section>
+
+        <section class="rail-section method-section">
+          <div class="section-label">
+            <span>运算逻辑</span>
+            <span>METHOD</span>
+          </div>
+          <p>坡度由中心差分求得，超阈值格网被排除。红色等值线标出当前建设上限，建筑再依间距与密度约束依次生长。</p>
+          <div class="method-chain" aria-hidden="true">
+            <span>SLOPE</span><i></i><span>FILTER</span><i></i><span>SPACING</span><i></i><span>GROWTH</span>
+          </div>
+        </section>
+
+        <footer class="rail-footer">
+          <span id="terrainSeedLabel">TERRAIN T1—0000</span>
+          <span>SITE 480 × 480 M</span>
+        </footer>
+      </div>
+    </aside>
+
+    <main class="stage" id="stage">
+      <canvas id="viewCanvas" tabindex="0" aria-label="可交互三维山地模型。拖拽旋转，滚轮缩放，右键拖拽平移。"></canvas>
+
+      <div class="stage-wash" aria-hidden="true"></div>
+      <div class="stage-cross" aria-hidden="true">
+        <i class="cross-h"></i>
+        <i class="cross-v"></i>
+        <span class="cross-mark cross-mark-a"></span>
+        <span class="cross-mark cross-mark-b"></span>
+        <span class="cross-mark cross-mark-c"></span>
+        <span class="cross-mark cross-mark-d"></span>
+      </div>
+
+      <header class="stage-bar stage-bar-top">
+        <div class="stage-title">
+          <span class="stage-index">03</span>
+          <span class="stage-cn">三维场地</span>
+          <span class="stage-slash">/</span>
+          <span class="stage-en">TERRAIN MODEL</span>
+          <span class="stage-viewmode" id="viewModeLabel">AXO / 32°</span>
+          <span class="analysis-flag" id="analysisIndicator" hidden><i></i>SLOPE ANALYSIS</span>
+        </div>
+
+        <div class="stage-controls">
+          <div class="view-switch" role="group" aria-label="视角预设">
+            <button type="button" class="view-btn is-active" data-view="axo" aria-pressed="true">轴测 <span>AXO</span></button>
+            <button type="button" class="view-btn" data-view="plan" aria-pressed="false">平面 <span>PLAN</span></button>
+            <button type="button" class="view-btn" data-view="north" aria-pressed="false">北向 <span>N</span></button>
+          </div>
+          <button type="button" class="stage-icon-btn" id="btnOrbit" aria-pressed="false" title="自动环视 / Auto orbit">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.3a6.7 6.7 0 1 1-6.2 4.1"/><path d="M3.2 3.2v4.5h4.5"/></svg>
+            <span class="sr-only">自动环视</span>
+          </button>
+          <button type="button" class="stage-icon-btn" id="btnResetView" title="复位视角 / Reset view">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.2 7.4V3.2h4.2M16.8 12.6v4.2h-4.2M3.8 3.8l4.7 4.7M16.2 16.2l-4.7-4.7"/></svg>
+            <span class="sr-only">复位视角</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="world-tag peak-tag" id="peakTag" hidden>
+        <span class="tag-rule"></span>
+        <span class="tag-kicker">PEAK / 最高点</span>
+        <b id="peakTagValue">+1,384 M</b>
+      </div>
+
+      <div class="world-tag selected-tag" id="selectionTag" hidden>
+        <span class="tag-rule"></span>
+        <span class="tag-kicker">SELECTED UNIT</span>
+        <b id="selectionTagValue">U-001</b>
+      </div>
+
+      <div class="hover-tip" id="hoverTip" hidden>
+        <span id="hoverCode">U-001</span>
+        <span class="hover-divider"></span>
+        <span id="hoverMeta">+1,350 M / 18°</span>
+      </div>
+
+      <aside class="selection-card" id="selectionCard" aria-live="polite" hidden>
+        <div class="selection-top">
+          <div>
+            <span class="selection-kicker">SELECTED UNIT / 单元档案</span>
+            <strong id="selectedCode">U-001</strong>
+          </div>
+          <button type="button" class="selection-close" id="btnClearSelection" aria-label="关闭单元档案">×</button>
+        </div>
+        <div class="selection-type-row">
+          <span id="selectedType">台地 / TERRACE</span>
+          <span id="selectedStatus">ON CONTOUR</span>
+        </div>
+        <div class="selection-grid">
+          <div><span>海拔 / ELEV.</span><b id="selectedElevation">+1,350 M</b></div>
+          <div><span>坡度 / SLOPE</span><b id="selectedSlope">18.2°</b></div>
+          <div><span>层数 / FLOORS</span><b id="selectedFloors">4</b></div>
+          <div><span>基底 / TERRACE</span><b id="selectedCut">2.1 M</b></div>
+          <div><span>占地 / AREA</span><b id="selectedArea">168 M²</b></div>
+          <div><span>高度 / HEIGHT</span><b id="selectedHeight">12.4 M</b></div>
+        </div>
+        <p class="selection-note">长轴顺应等高线；基座依据四角地形高程整平。</p>
+      </aside>
+
+      <div class="growth-meter" id="growthMeter" hidden>
+        <div class="growth-copy">
+          <span>GROWTH SEQUENCE / 生长序列</span>
+          <b id="growthCount">00 / 00</b>
+        </div>
+        <div class="growth-track"><i id="growthFill"></i></div>
+      </div>
+
+      <div class="compass" aria-hidden="true">
+        <svg viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="19" class="compass-ring"></circle>
+          <g class="compass-ticks">
+            <path d="M26 6v3M26 43v3M6 26h3M43 26h3"></path>
+            <path d="M11.9 11.9l2.1 2.1M38 38l2.1 2.1M40.1 11.9L38 14M14 38l-2.1 2.1"></path>
+          </g>
+          <g id="compassNeedle" class="compass-needle">
+            <path d="M26 13l3.7 14.2L26 24l-3.7 3.2z" class="needle-fill"></path>
+            <text x="26" y="10.2" text-anchor="middle">N</text>
+          </g>
+          <circle cx="26" cy="26" r="1.25" class="compass-centre"></circle>
+        </svg>
+        <span>NORTH / 北</span>
+      </div>
+
+      <footer class="stage-bar stage-bar-bottom">
+        <div class="coord-readout" id="coordReadout">
+          <span><b>X</b><em id="coordX">+000.0</em></span>
+          <span><b>Z</b><em id="coordZ">+000.0</em></span>
+          <span><b>H</b><em id="coordH">+1,264 M</em></span>
+        </div>
+        <div class="scale-block">
+          <div class="scale-line"><i></i><i></i></div>
+          <span id="scaleLabel">100 M</span>
+          <span class="scale-caption">1 : 500</span>
+        </div>
+        <div class="stage-hint">
+          <span>拖拽 旋转</span><i>·</i>
+          <span>滚轮 缩放</span><i>·</i>
+          <span>右键 平移</span>
+        </div>
+      </footer>
+
+      <div class="boot-overlay" id="bootOverlay">
+        <div class="boot-inner">
+          <div class="boot-mark" aria-hidden="true">T<span>/01</span></div>
+          <div class="boot-copy">
+            <span>正在计算地形</span>
+            <strong>GENERATING TOPOGRAPHY</strong>
+          </div>
+          <div class="boot-progress"><i id="bootProgress"></i></div>
+          <div class="boot-meta">
+            <span>FIELD RESOLUTION 160 × 160</span>
+            <span id="bootStep">00 / 03</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="webgl-fallback" id="webglFallback" hidden>
+        <span>WEBGL UNAVAILABLE</span>
+        <p>当前浏览器无法启动三维渲染。请启用硬件加速，或更换支持 WebGL 的现代浏览器。</p>
+      </div>
+    </main>
+
+    <aside class="right-rail" aria-label="生成约束参数">
+      <div class="controls-inner">
+        <header class="controls-heading">
+          <span class="controls-index">02</span>
+          <div class="controls-title">
+            <h2>约束参数</h2>
+            <span>GENERATIVE CONSTRAINTS</span>
+          </div>
+          <button type="button" class="info-button" id="btnInfo" aria-label="查看计算逻辑与快捷键">i</button>
+        </header>
+
+        <section class="control-group">
+          <div class="group-heading">
+            <span>地形 / TERRAIN</span>
+            <span>01</span>
+          </div>
+          <div class="slider-control">
+            <div class="control-meta">
+              <label for="reliefRange"><span class="cn">起伏强度</span><span class="en">RELIEF INTENSITY</span></label>
+              <output for="reliefRange"><b id="reliefValue">0.92</b><span>×</span></output>
+            </div>
+            <input id="reliefRange" type="range" min="0.38" max="1.62" step="0.01" value="0.92" aria-label="起伏强度">
+            <div class="slider-foot"><span>LOW</span><span id="reliefMeters">ΔH 112 M</span><span>HIGH</span></div>
+          </div>
+          <button type="button" class="rebuild-button" id="btnRebuild">
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M14.8 7.2A5.8 5.8 0 1 0 15 10.6"/><path d="M15 3v4.4h-4.3"/></svg>
+            <span>生成新山体 <b>/ NEW TERRAIN</b></span>
+          </button>
+        </section>
+
+        <section class="control-group">
+          <div class="group-heading">
+            <span>选址约束 / SITING</span>
+            <span>02</span>
+          </div>
+          <div class="slider-control">
+            <div class="control-meta">
+              <label for="slopeRange"><span class="cn">最大允许坡度</span><span class="en">MAX SLOPE</span></label>
+              <output for="slopeRange"><b id="slopeValue">24</b><span>°</span></output>
+            </div>
+            <input id="slopeRange" type="range" min="9" max="42" step="1" value="24" aria-label="最大允许坡度">
+            <div class="slider-foot"><span>09°</span><span id="slopeFoot">BUILDABLE SURFACE</span><span>42°</span></div>
+          </div>
+          <div class="slider-control">
+            <div class="control-meta">
+              <label for="spacingRange"><span class="cn">建筑间距</span><span class="en">CENTRE SPACING</span></label>
+              <output for="spacingRange"><b id="spacingValue">26</b><span>M</span></output>
+            </div>
+            <input id="spacingRange" type="range" min="16" max="54" step="1" value="26" aria-label="建筑最小中心间距">
+            <div class="slider-foot"><span>16 M</span><span>CLEARANCE CONSTRAINT</span><span>54 M</span></div>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <div class="group-heading">
+            <span>聚落生成 / SETTLEMENT</span>
+            <span>03</span>
+          </div>
+          <div class="slider-control">
+            <div class="control-meta">
+              <label for="countRange"><span class="cn">建筑数量</span><span class="en">UNIT COUNT</span></label>
+              <output for="countRange"><b id="countValue">46</b><span>U</span></output>
+            </div>
+            <input id="countRange" type="range" min="8" max="110" step="1" value="46" aria-label="建筑数量">
+            <div class="slider-foot"><span>08 U</span><span id="countFoot">TARGET</span><span>110 U</span></div>
+          </div>
+          <div class="slider-control">
+            <div class="control-meta">
+              <label for="densityRange"><span class="cn">聚落密度</span><span class="en">CLUSTER DENSITY</span></label>
+              <output for="densityRange"><b id="densityValue">0.58</b><span>ρ</span></output>
+            </div>
+            <input id="densityRange" type="range" min="0.05" max="1" step="0.01" value="0.58" aria-label="聚落聚集密度">
+            <div class="slider-foot"><span>DISPERSED</span><span>CLUSTER BIAS</span><span>COMPACT</span></div>
+          </div>
+        </section>
+
+        <section class="actions">
+          <button type="button" class="action-button analyze-button" id="btnAnalyze" aria-pressed="false">
+            <svg viewBox="0 0 22 22" aria-hidden="true">
+              <path d="M3 16.5 8.2 10l3.5 3.2L19 5.4"/>
+              <path d="M3 19h16M14.6 5.4H19v4.4"/>
+            </svg>
+            <span class="action-copy"><b id="analyzeLabel">坡度分析</b><small id="analyzeSub">ANALYSE SLOPE</small></span>
+            <span class="action-state" id="analyzeState">OFF</span>
+          </button>
+
+          <button type="button" class="action-button primary-button" id="btnGenerate">
+            <svg viewBox="0 0 22 22" aria-hidden="true">
+              <path d="M4 18V9.5L11 4l7 5.5V18z"/>
+              <path d="M8.3 18v-5.2h5.4V18M2.5 19.8h17"/>
+            </svg>
+            <span class="action-copy"><b>生成聚落</b><small>GENERATE SETTLEMENT</small></span>
+            <span class="action-arrow" aria-hidden="true">↗</span>
+          </button>
+
+          <div class="action-pair">
+            <button type="button" class="mini-button" id="btnRemix">
+              <span><b>REMIX</b><small>重组聚落</small></span>
+              <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5.5h3.2l5.6 7H15M12 2.7l2.8 2.8L12 8.3M3 12.5h3.2l1.9-2.4M12 9.7l2.8 2.8-2.8 2.8"/></svg>
+            </button>
+            <button type="button" class="mini-button" id="btnExport">
+              <span><b>EXPORT</b><small>导出 PNG</small></span>
+              <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.8v8.6M5.7 6.1 9 2.8l3.3 3.3M3 10.6v4.6h12v-4.6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="instrument-panel">
+          <div class="section-label">
+            <span>选址读数</span>
+            <span>SITE INTELLIGENCE</span>
+          </div>
+          <div class="bar-readout">
+            <div class="bar-readout-head"><span>可建坡面 / BUILDABLE</span><b id="readBuildable">—</b></div>
+            <div class="thin-bar"><i id="readBuildableBar"></i></div>
+          </div>
+          <div class="readout-row"><span>落位单元 / UNITS PLACED</span><b id="readUnits">—</b></div>
+          <div class="readout-row"><span>平均建筑坡度 / MEAN SLOPE</span><b id="readMeanSlope">—</b></div>
+          <div class="readout-row"><span>路径拓扑 / LINK LENGTH</span><b id="readLinks">—</b></div>
+          <div class="readout-row"><span>布局种子 / LAYOUT SEED</span><b id="readSeed">—</b></div>
+        </section>
+
+        <div class="shortcut-strip" aria-hidden="true">
+          <span><b>A</b> 分析</span>
+          <span><b>R</b> 重组</span>
+          <span><b>E</b> 导出</span>
+          <span><b>1–3</b> 视角</span>
+        </div>
+      </div>
+    </aside>
+
+    <footer class="site-footer">
+      <div class="footer-left">
+        <span>TERRAIN SYNTHESIS UNIT</span>
+        <span class="footer-dot"></span>
+        <span>GENERATIVE SETTLEMENT PROTOCOL</span>
+      </div>
+      <div class="footer-centre" id="footerStatus">RULE-BASED SITING / 坡度—间距—生长</div>
+      <div class="footer-right">
+        <span id="footerCoords">47°22′ N / 08°32′ E</span>
+        <span class="footer-dot"></span>
+        <span>U—01 / 2026</span>
+      </div>
+    </footer>
+  </div>
+
+  <dialog class="info-dialog" id="infoDialog" aria-labelledby="infoTitle">
+    <div class="dialog-top">
+      <span class="dialog-index">T/01 — METHOD</span>
+      <button type="button" class="dialog-close" id="btnCloseInfo" aria-label="关闭信息">×</button>
+    </div>
+    <h2 id="infoTitle">计算逻辑<br><span>METHOD / PROTOCOL</span></h2>
+    <div class="dialog-grid">
+      <section>
+        <span class="dialog-num">01</span>
+        <h3>地形 / TOPOGRAPHY</h3>
+        <p>以多层八度分形噪声与脊状噪声叠加，生成确定性山地高度场；160 × 160 网格经平滑重塑与归一化后，作为唯一地形数据源。</p>
+      </section>
+      <section>
+        <span class="dialog-num">02</span>
+        <h3>坡度 / SLOPE</h3>
+        <p>在规则网格上用中心差分计算 ∂h/∂x 与 ∂h/∂z，坡度 θ = arctan(|∇h|)。超过阈值的格网不进入候选池；地图中的红色等值线即当前坡度的建设上限，并非装饰性着色。</p>
+      </section>
+      <section>
+        <span class="dialog-num">03</span>
+        <h3>选址 / SITING</h3>
+        <p>候选点按平整度、遮蔽、南向日照与高程带综合评分；建筑以贪心方式逐栋生长，严格执行中心间距约束，密度参数改变聚集权重。</p>
+      </section>
+      <section>
+        <span class="dialog-num">04</span>
+        <h3>建造 / TECTONICS</h3>
+        <p>建筑长轴对齐局部等高线，基座依据四角地形采样整平，形成真实可读的挖填台地。屋面与红色竖向核心是程序化建筑词汇，而非随机组合。</p>
+      </section>
+    </div>
+    <div class="dialog-bottom">
+      <div>
+        <span class="dialog-label">CONTROLS / 操作</span>
+        <p>左键拖拽旋转 · 滚轮缩放 · 右键或 Shift + 拖拽平移 · 点击建筑查看单元档案。</p>
+      </div>
+      <div class="dialog-shortcuts">
+        <span><b>A</b> 坡度分析</span>
+        <span><b>R</b> REMIX</span>
+        <span><b>G</b> 生成</span>
+        <span><b>E</b> 导出</span>
+        <span><b>1—3</b> 视角</span>
+      </div>
+    </div>
+    <p class="dialog-footnote">THREE.JS r149 · PROCEDURAL GEOMETRY · NO EXTERNAL MAP DATA · ALL COMPUTATION IN-BROWSER</p>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div class="sr-only" id="liveStatus" aria-live="polite"></div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/terrain.js"></script>
+  <script src="js/settlement.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
